@@ -34,8 +34,10 @@ as the closure_drift Action does by default (`allow-undetermined: false`).
 | Version declared in another file | depends on configuration | a second check, on the file you name |
 | Not enough data | does not necessarily decide | says so: exit 2 |
 
-With semantic-release, where `package.json` keeps `0.0.0-development` and the tag is the version,
-there is nothing to compare, and `--tag` reports a mismatch. Do not use it in that setup.
+Where the version is written from the tag at publish time (semantic-release keeping
+`0.0.0-development`, or a publish job running `uv version "${GITHUB_REF_NAME#v}"`), the file at the
+tag is stale on purpose and the published package is right. There is nothing to compare, and `--tag`
+reports a mismatch. Do not use it in that setup.
 
 ## In a real workflow
 
