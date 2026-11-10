@@ -6,27 +6,51 @@ env:
   DETECTOR_SHA256: 3fafc146ab0f9e6c316687ff803d1ee4f7974c439a34311322b72cca8966916d
 jobs:
   scenario:
-    name: ${{ matrix.kind }} → expect exit ${{ matrix.expect }}
+    name: ${{ matrix.kind }} (expected exit ${{ matrix.expect }})
     runs-on: ubuntu-latest
     strategy:
       fail-fast: false
       matrix:
         include:
-          - {kind: release,         expect: 0}   # tag_matches
-          - {kind: tag-before-bump, expect: 1}   # tag_mismatch: the release step should stop here
-          - {kind: insufficient,    expect: 2}   # nothing determined: not a pass
+          - {kind: normal,          expect: 0}
+          - {kind: tag-before-bump, expect: 1}
+          - {kind: tag-moved,       expect: 0}
+          - {kind: other-file,      expect: 1}
+          - {kind: insufficient,    expect: 2}
     steps:
       - uses: actions/checkout@v4
       - name: Fetch the detector (one file, pinned by hash)
         run: |
           curl -fsSL -o closure_drift.py "https://raw.githubusercontent.com/luizfnsilva/closure_drift/${DETECTOR_TAG}/closure_drift.py"
           echo "${DETECTOR_SHA256}  closure_drift.py" | sha256sum -c -
-      - name: Build the scenario
-        run: echo "TAG=$(scenarios/make.sh "$RUNNER_TEMP/repo" ${{ matrix.kind }})" >> "$GITHUB_ENV"
-      - name: Check the tag
+      - name: Build the scenario and check the tag
         run: |
+          mapfile -t out < <(scenarios/make.sh "$RUNNER_TEMP/repo" ${{ matrix.kind }})
+          tag=${out[0]}; extra=${out[1]}; op=${out[2]}
           set +e
-          python3 closure_drift.py "$RUNNER_TEMP/repo" --tag "$TAG"
+          python3 closure_drift.py "$RUNNER_TEMP/repo" --tag "$tag" $extra --json > report.json 2> stderr.txt
           code=$?
-          echo "exit $code (expected ${{ matrix.expect }})"
+          set -e
+          verdict=$(python3 -c 'import json;print(json.load(open("report.json")).get("verdict"))' 2>/dev/null || echo "none (refusal, see stderr)")
+          commit=$(git -C "$RUNNER_TEMP/repo" rev-parse "$tag")
+          case $code in 0) policy="pass";; 1) policy="FAIL: the tag does not name the version its commit declares";;
+                        *) policy="FAIL: nothing was determined; inconclusive is not a pass";; esac
+          {
+            echo "### ${{ matrix.kind }}"
+            echo "- Initial state: v1.0.0 tagged on a commit declaring 1.0.0"
+            echo "- Operation: $op"
+            echo "- Tag $tag on commit \`$commit\`"
+            echo "- Expected exit ${{ matrix.expect }}; observed exit **$code**, verdict \`$verdict\`"
+            echo "- Release policy: $policy"
+            echo; echo '```'; cat stderr.txt; echo '```'
+          } >> "$GITHUB_STEP_SUMMARY"
+          printf '%s\t%s\t%s\t%s\t%s\n' "${{ matrix.kind }}" "$commit" "${{ matrix.expect }}" "$code" "$verdict" > result.tsv
           test "$code" = "${{ matrix.expect }}"
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: result-${{ matrix.kind }}
+          path: |
+            report.json
+            stderr.txt
+            result.tsv

@@ -1,23 +1,41 @@
-# closure_drift with release tools: three examples
+# closure_drift with release tools: examples
 
-Each job builds a small repository and asks [closure_drift](https://github.com/luizfnsilva/closure_drift)
-whether the tag names the version its commit declares. The jobs are in `.github/workflows/examples.yml`.
+A demonstration, separate from the tool. Each job in `.github/workflows/examples.yml` builds a small
+repository, makes one release operation and asks
+[closure_drift](https://github.com/luizfnsilva/closure_drift) (pinned by hash) whether the tag names
+the version its commit declares. Every run writes, per scenario: the initial state, the operation, the
+tag's commit, the expected and the observed exit code, and keeps `report.json` as an artifact.
 
-| Scenario | What happens | Exit |
+All scenarios start the same way: `v1.0.0` on a commit declaring `1.0.0`.
+
+| Scenario | Operation | Expected |
 |---|---|---|
-| `release` | bump and tag on the same commit, as python-semantic-release and release-please do | 0 |
-| `tag-before-bump` | a tag made by hand before the bump landed | 1: stop the release |
-| `insufficient` | nothing declares a version | 2: nothing determined, which is not a pass |
+| `normal` | bump to 1.1.0 and tag `v1.1.0` on the same commit | 0: pass |
+| `tag-before-bump` | `v1.1.0` tagged by hand before the bump commit | 1: the tagged commit still declares 1.0.0 |
+| `tag-moved` | `v1.1.0` recreated on a later commit with other code | 0: see below |
+| `other-file` | pyproject.toml bumped, `src/demo/__init__.py` left at 1.0.0 | 1: the file checked disagrees |
+| `insufficient` | no file declares a version | 2: nothing determined |
 
-## When it adds nothing
+**A moved tag alone is not drift.** In `tag-moved` the new commit declares 1.1.0, so the check passes:
+what it examines is whether the tag names the version its commit declares, and that holds. That the
+same tag once named other code is visible only while the old tag is somewhere in the history examined
+(another tag, a `--published` list). Here it is gone, so nothing can be said about it.
 
-In the normal flow of python-semantic-release and release-please, the bump and the tag land on one
-commit, so this check only confirms what the tool already did. It catches what happens around them:
-a tag made or moved by hand, a bump push that failed after the tag, or a version file the release
-tool does not update (a Cargo workspace member, a `__init__.py`).
+**Inconclusive is not a pass.** Exit 2 means there was not enough to decide. The workflow fails on it,
+as the closure_drift Action does by default (`allow-undetermined: false`).
+
+## What it adds to a release tool
+
+| Situation | Release tool | closure_drift |
+|---|---|---|
+| Normal flow, correctly configured | already keeps them consistent | independent confirmation |
+| Tag made by hand before the bump | can escape the automated flow | finds the mismatch |
+| Tag changed later | depends on the history available | can find it only if the old state is still in the history examined |
+| Version declared in another file | depends on configuration | a second check, on the file you name |
+| Not enough data | does not necessarily decide | says so: exit 2 |
 
 With semantic-release, where `package.json` keeps `0.0.0-development` and the tag is the version,
-there is nothing to compare: `--tag` reports a mismatch there. Do not use it in that setup.
+there is nothing to compare, and `--tag` reports a mismatch. Do not use it in that setup.
 
 ## In a real workflow
 
