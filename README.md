@@ -42,7 +42,7 @@ reports a mismatch. Do not use it in that setup.
 ## In a real workflow
 
 ```yaml
-- uses: luizfnsilva/closure_drift@v1.5.1   # on a tag push, checks the pushed tag
+- uses: luizfnsilva/closure_drift@v1.6.0   # on a tag push, checks the pushed tag
 ```
 
 ## Observed

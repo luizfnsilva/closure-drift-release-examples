@@ -2,8 +2,8 @@ name: examples
 on: [push, pull_request, workflow_dispatch]
 permissions: {contents: read}
 env:
-  DETECTOR_TAG: v1.5.1
-  DETECTOR_SHA256: 3fafc146ab0f9e6c316687ff803d1ee4f7974c439a34311322b72cca8966916d
+  DETECTOR_TAG: v1.6.0
+  DETECTOR_SHA256: 0e4e5a2633b8b98535d34a7084baf930aabddae9bd7b0ddb3cf2abbfa7f8172e
 jobs:
   scenario:
     name: ${{ matrix.kind }} (expected exit ${{ matrix.expect }})
