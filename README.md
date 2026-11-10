@@ -42,3 +42,9 @@ there is nothing to compare, and `--tag` reports a mismatch. Do not use it in th
 ```yaml
 - uses: luizfnsilva/closure_drift@v1.5.1   # on a tag push, checks the pushed tag
 ```
+
+## Observed
+
+Run [42896425424](https://github.com/luizfnsilva/closure-drift-release-examples/actions/runs/42896425424)
+on commit `ab5c4ad`, closure_drift 1.5.1: all five scenarios left at the expected exit code. Each
+job's summary and artifact hold the commit and the report.
