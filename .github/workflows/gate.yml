@@ -8,7 +8,7 @@ on:
 permissions:
   contents: read
 env:
-  ACTION_REF: cf2a6fbf36c2865d3c07f65e2a7b58d2830ac2e1   # the 1.8.0 candidate, as a user receives it: the Action from a ref
+  ACTION_REF: a0bc9450d57a2c4ae3c02d77392d4ccda9f9a5fd   # the 1.8.0 candidate, as a user receives it: the Action from a ref
 jobs:
   check-a:
     name: "A — correct release: check"
@@ -22,7 +22,7 @@ jobs:
           persist-credentials: false
       - run: bash scenarios/make.sh "$RUNNER_TEMP/a" normal
       - id: cd
-        uses: luizfnsilva/closure_drift@cf2a6fbf36c2865d3c07f65e2a7b58d2830ac2e1
+        uses: luizfnsilva/closure_drift@a0bc9450d57a2c4ae3c02d77392d4ccda9f9a5fd
         with:
           mode: measure
           path: ${{ runner.temp }}/a
@@ -45,7 +45,7 @@ jobs:
           persist-credentials: false
       - run: bash scenarios/make.sh "$RUNNER_TEMP/b" tag-before-bump
       - id: cd
-        uses: luizfnsilva/closure_drift@cf2a6fbf36c2865d3c07f65e2a7b58d2830ac2e1
+        uses: luizfnsilva/closure_drift@a0bc9450d57a2c4ae3c02d77392d4ccda9f9a5fd
         with:
           mode: measure
           path: ${{ runner.temp }}/b
@@ -68,7 +68,7 @@ jobs:
           persist-credentials: false
       - run: bash scenarios/make.sh "$RUNNER_TEMP/c" publish-time
       - id: cd
-        uses: luizfnsilva/closure_drift@cf2a6fbf36c2865d3c07f65e2a7b58d2830ac2e1
+        uses: luizfnsilva/closure_drift@a0bc9450d57a2c4ae3c02d77392d4ccda9f9a5fd
         with:
           mode: measure
           path: ${{ runner.temp }}/c
