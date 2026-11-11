@@ -47,8 +47,9 @@ reports a mismatch. Do not use it in that setup.
 
 ## Observed
 
-Run [42904574239](https://github.com/luizfnsilva/closure-drift-release-examples/actions/runs/42904574239)
-on commit `fb874ab`, closure_drift 1.6.0: all five scenarios left at the expected exit code. Each
-job's summary and artifact hold the commit and the report. The run before, on 1.5.1
-([42896425424](https://github.com/luizfnsilva/closure-drift-release-examples/actions/runs/42896425424)),
+Run [43048572732](https://github.com/luizfnsilva/closure-drift-release-examples/actions/runs/43048572732)
+on commit `fd1500c`, closure_drift 1.7.0: all five scenarios left at the expected exit code. Each
+job's summary and artifact hold the commit and the report. The runs before, on 1.6.0
+([42904574239](https://github.com/luizfnsilva/closure-drift-release-examples/actions/runs/42904574239))
+and 1.5.1 ([42896425424](https://github.com/luizfnsilva/closure-drift-release-examples/actions/runs/42896425424)),
 gave the same codes.
