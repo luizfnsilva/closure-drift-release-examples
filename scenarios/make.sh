@@ -31,5 +31,10 @@ case "$kind" in
     git rm -q pyproject.toml src/demo/__init__.py; echo 'print(2)' > src/demo/app.py; git add -A
     git commit -qm "no manifest"; git tag v1.1.0
     op="tag v1.1.0 on a commit where no file declares a version" ;;
+  publish-time)     # the release job writes the version from the tag; the file stays at 1.0.0
+    echo 'print(2)' > src/demo/app.py; mkdir -p .github/workflows
+    printf 'on:\n  push:\n    tags: ["v*"]\njobs:\n  publish:\n    runs-on: ubuntu-latest\n    steps:\n      - run: uv version "${GITHUB_REF_NAME#v}"\n      - run: uv build\n' > .github/workflows/publish.yml
+    git add -A; git commit -qm "feature"; git tag v1.1.0
+    op="tag v1.1.0; the release job writes 1.1.0 into pyproject.toml at publish time (the file says 1.0.0)" ;;
 esac
 echo v1.1.0; echo "$extra"; echo "$op"

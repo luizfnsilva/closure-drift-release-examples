@@ -1,0 +1,98 @@
+name: gate
+# R18-05 / R18-06 of closure_drift 1.8.0: the check gates a publish job through needs:.
+# B and C are red on purpose: their check fails and their publish job must not run.
+# The verify job is the test: it is green only when all three behaved as required.
+on:
+  push:
+  workflow_dispatch:
+permissions:
+  contents: read
+env:
+  ACTION_REF: cf2a6fbf36c2865d3c07f65e2a7b58d2830ac2e1   # the 1.8.0 candidate, as a user receives it: the Action from a ref
+jobs:
+  check-a:
+    name: "A — correct release: check"
+    runs-on: ubuntu-latest
+    outputs:
+      verdict: ${{ steps.cd.outputs.verdict }}
+      code: ${{ steps.cd.outputs.exit-code }}
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+      - run: bash scenarios/make.sh "$RUNNER_TEMP/a" normal
+      - id: cd
+        uses: luizfnsilva/closure_drift@cf2a6fbf36c2865d3c07f65e2a7b58d2830ac2e1
+        with:
+          mode: measure
+          path: ${{ runner.temp }}/a
+          args: --tag v1.1.0
+  publish-a:
+    name: "A — correct release: publish"
+    needs: check-a
+    runs-on: ubuntu-latest
+    steps:
+      - run: echo "this is where the package would be published"
+  check-b:
+    name: "B — tag cut before the bump: check"
+    runs-on: ubuntu-latest
+    outputs:
+      verdict: ${{ steps.cd.outputs.verdict }}
+      code: ${{ steps.cd.outputs.exit-code }}
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+      - run: bash scenarios/make.sh "$RUNNER_TEMP/b" tag-before-bump
+      - id: cd
+        uses: luizfnsilva/closure_drift@cf2a6fbf36c2865d3c07f65e2a7b58d2830ac2e1
+        with:
+          mode: measure
+          path: ${{ runner.temp }}/b
+          args: --tag v1.1.0
+  publish-b:
+    name: "B — tag cut before the bump: publish"
+    needs: check-b
+    runs-on: ubuntu-latest
+    steps:
+      - run: echo "this is where the package would be published"
+  check-c:
+    name: "C — version written at publish time: check"
+    runs-on: ubuntu-latest
+    outputs:
+      verdict: ${{ steps.cd.outputs.verdict }}
+      code: ${{ steps.cd.outputs.exit-code }}
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+      - run: bash scenarios/make.sh "$RUNNER_TEMP/c" publish-time
+      - id: cd
+        uses: luizfnsilva/closure_drift@cf2a6fbf36c2865d3c07f65e2a7b58d2830ac2e1
+        with:
+          mode: measure
+          path: ${{ runner.temp }}/c
+          args: --tag v1.1.0
+  publish-c:
+    name: "C — version written at publish time: publish"
+    needs: check-c
+    runs-on: ubuntu-latest
+    steps:
+      - run: echo "this is where the package would be published"
+  verify:
+    name: "verify: A published; B and C stopped, with the reason"
+    if: always()
+    needs: [check-a, publish-a, check-b, publish-b, check-c, publish-c]
+    runs-on: ubuntu-latest
+    steps:
+      - env:
+          A: ${{ needs.check-a.result }}/${{ needs.check-a.outputs.verdict }}/${{ needs.publish-a.result }}
+          B: ${{ needs.check-b.result }}/${{ needs.check-b.outputs.verdict }}/${{ needs.publish-b.result }}
+          C: ${{ needs.check-c.result }}/${{ needs.check-c.outputs.verdict }}/${{ needs.publish-c.result }}
+        run: |
+          printf '| scenario | check | verdict | publish |\n|---|---|---|---|\n' >> "$GITHUB_STEP_SUMMARY"
+          for s in "A $A" "B $B" "C $C"; do set -- $s; IFS=/ read -r c v p <<< "$2"; echo "| $1 | $c | $v | $p |" >> "$GITHUB_STEP_SUMMARY"; done
+          echo "A=$A B=$B C=$C"
+          [ "$A" = "success/tag_matches/success" ] || { echo "::error::A: required success/tag_matches/success"; exit 1; }
+          [ "$B" = "failure/tag_mismatch/skipped" ] || { echo "::error::B: required failure/tag_mismatch/skipped"; exit 1; }
+          [ "$C" = "failure/incomplete/skipped" ] || { echo "::error::C: required failure/incomplete/skipped"; exit 1; }
