@@ -53,3 +53,18 @@ job's summary and artifact hold the commit and the report. The runs before, on 1
 ([42904574239](https://github.com/luizfnsilva/closure-drift-release-examples/actions/runs/42904574239))
 and 1.5.1 ([42896425424](https://github.com/luizfnsilva/closure-drift-release-examples/actions/runs/42896425424)),
 gave the same codes.
+
+## Gate: a publish job behind the check
+
+[`gate.yml`](.github/workflows/gate.yml) puts a publish job behind the check with `needs:`, for three
+scenarios. It runs the 1.8.0 candidate as a user gets it: the Action from a pinned ref.
+
+| scenario | check | verdict | publish |
+|---|---|---|---|
+| A, correct release | passes | `tag_matches` | runs |
+| B, tag cut before the bump | fails | `tag_mismatch` | does not run |
+| C, version written at publish time | fails | `incomplete` | does not run |
+
+B and C make the run red on purpose. The `verify` job is the test: it is green only when all three
+behave as above. Run [43099981292](https://github.com/luizfnsilva/closure-drift-release-examples/actions/runs/43099981292).
+In A, the check only confirms what a release tool that bumps and tags in one commit already ensures.
