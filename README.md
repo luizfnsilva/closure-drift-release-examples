@@ -68,3 +68,27 @@ scenarios. It runs the 1.8.0 candidate as a user gets it: the Action from a pinn
 B and C make the run red on purpose. The `verify` job is the test: it is green only when all three
 behave as above. Run [43099981292](https://github.com/luizfnsilva/closure-drift-release-examples/actions/runs/43099981292).
 In A, the check only confirms what a release tool that bumps and tags in one commit already ensures.
+
+## Two platforms, same gate
+
+closure_drift 1.8.0 on both. On each platform the publish job depends on the check, so it runs only
+when the check passes. On GitHub that is `needs: check-x`, in [`gate.yml`](.github/workflows/gate.yml).
+On GitLab it is `needs: [closure-drift]`, in the test project's
+[`.gitlab-ci.yml`](https://gitlab.com/lfnsilva.invest/closure-drift-test/-/blob/main/.gitlab-ci.yml).
+On both, exit 2 fails the check, because `allow-undetermined` is `false` by default.
+
+| platform | how it is called | scenario | check | publish | run |
+|---|---|---|---|---|---|
+| GitHub Actions | `luizfnsilva/closure_drift@v1.8.0`, `--tag` | A, correct release | `tag_matches`, exit 0 | ran | [130916204984](https://github.com/luizfnsilva/closure-drift-release-examples/actions/runs/43137487122/job/130916204984) |
+| GitHub Actions | same | B, tag cut before the bump | `tag_mismatch`, exit 1 | skipped | [130916204729](https://github.com/luizfnsilva/closure-drift-release-examples/actions/runs/43137487122/job/130916204729) |
+| GitHub Actions | same | C, version written at publish time | `incomplete`, exit 2 | skipped | [130916205033](https://github.com/luizfnsilva/closure-drift-release-examples/actions/runs/43137487122/job/130916205033) |
+| GitLab CI/CD | catalog component `closure-drift@1.8.0`, `would-tag` | correct: 1.2.0, not yet tagged | WOULD BE CLEAN, exit 0 | ran | [3062315091](https://gitlab.com/lfnsilva.invest/closure-drift-test/-/pipelines/3062315091) |
+| GitLab CI/CD | same | drift: code changed, still 1.0.0 | WOULD DRIFT, exit 1 | skipped | [3062315272](https://gitlab.com/lfnsilva.invest/closure-drift-test/-/pipelines/3062315272) |
+| GitLab CI/CD | same | incomplete: no file in the closure | EMPTY CLOSURE, exit 2 | skipped | [3062315480](https://gitlab.com/lfnsilva.invest/closure-drift-test/-/pipelines/3062315480) |
+
+On GitHub, the `verify` job is green only when all three scenarios behave as above. Its own run, [43137487122](https://github.com/luizfnsilva/closure-drift-release-examples/actions/runs/43137487122), is red on purpose, because of B and C.
+
+The two platforms do not run identical scenarios. On GitHub the check runs on a pushed tag (`--tag`).
+On GitLab it runs before tagging (`--would-tag`), and the drift case is code that changed while the
+version stayed the same. The rule holds on both: exit 0 lets the publish job run, and exit 1 or 2
+stops it.
