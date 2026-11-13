@@ -34,10 +34,16 @@ as the closure_drift Action does by default (`allow-undetermined: false`).
 | Version declared in another file | depends on configuration | a second check, on the file you name |
 | Not enough data | does not necessarily decide | says so: exit 2 |
 
-Where the version is written from the tag at publish time (semantic-release keeping
-`0.0.0-development`, or a publish job running `uv version "${GITHUB_REF_NAME#v}"`), the file at the
-tag is stale on purpose and the published package is right. There is nothing to compare, and `--tag`
-reports a mismatch. Do not use it in that setup.
+Where the version is written from the tag at publish time, the file at the tag is stale on purpose
+and the published package is right. Examples: semantic-release keeping `0.0.0-development`, or a
+publish job running `uv version "${GITHUB_REF_NAME#v}"`. Here there is nothing to compare. What `--tag`
+answers depends on whether it recognises the mechanism. Since 1.8.0, a version written from the
+pushed ref, from `github.event.release.tag_name` or from `git describe --tags` gives `incomplete`
+(exit 2), with the workflow file and line, not a mismatch. A version written by `sed`, by a script or
+through job outputs is not recognised, and there `--tag` can still answer `tag_mismatch`
+([FAILURES.md O14](https://github.com/luizfnsilva/closure_drift/blob/main/docs/FAILURES.md)). In both
+cases the check does not fit that setup: it stops the publish without saying anything about the
+package.
 
 ## In a real workflow
 
@@ -57,7 +63,7 @@ gave the same codes.
 ## Gate: a publish job behind the check
 
 [`gate.yml`](.github/workflows/gate.yml) puts a publish job behind the check with `needs:`, for three
-scenarios. It runs the 1.8.0 candidate as a user gets it: the Action from a pinned ref.
+scenarios. It runs closure_drift 1.8.0 as a user gets it: the Action pinned at `@v1.8.0`.
 
 | scenario | check | verdict | publish |
 |---|---|---|---|
@@ -66,7 +72,7 @@ scenarios. It runs the 1.8.0 candidate as a user gets it: the Action from a pinn
 | C, version written at publish time | fails | `incomplete` | does not run |
 
 B and C make the run red on purpose. The `verify` job is the test: it is green only when all three
-behave as above. Run [43099981292](https://github.com/luizfnsilva/closure-drift-release-examples/actions/runs/43099981292).
+behave as above. Run [43137487122](https://github.com/luizfnsilva/closure-drift-release-examples/actions/runs/43137487122), on 1.8.0. The earlier run on the frozen candidate, [43099981292](https://github.com/luizfnsilva/closure-drift-release-examples/actions/runs/43099981292), gave the same results.
 In A, the check only confirms what a release tool that bumps and tags in one commit already ensures.
 
 ## Two platforms, same gate
